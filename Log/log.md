@@ -2,6 +2,40 @@
 
 ---
 
+## 2026-04-10 Phase 5：系统顶层集成
+
+### 执行摘要
+
+创建系统顶层模块 `dsp_cnn_top.sv`，集成 CSR 控制器 + CIC + FIR + CNN 引擎 + 全局 FSM，实现完整的 Input→CIC→FIR→CNN→Result 端到端数据通路。
+
+### 5.1 `rtl/dsp_cnn_top.sv` [NEW]
+
+| 组件 | 实例 | 说明 |
+|------|------|------|
+| CSR Controller | `u_csr` | AXI-Lite 寄存器接口 |
+| CIC Decimator | `u_cic` | 抽取滤波器 |
+| FIR Compensator | `u_fir` | 补偿滤波器 |
+| CNN Engine | `u_cnn` | 推理引擎 |
+| Global FSM | `r_gfsm` | IDLE→STREAMING_DSP→CNN_COMPUTE→RESULT_DRAIN→DONE→ERROR |
+| Error Aggregation | | CIC/FIR/CNN 错误码聚合 + 模块 ID |
+| Interrupt Routing | | CSR irq_o 输出 |
+
+**数据通路：**
+
+```
+s_axis → CIC → FIR → CNN → m_axis
+           ↑      ↑     ↑
+        cic_en  fir_en  cnn_en  ← CSR Controller ← AXI-Lite
+```
+
+### 修改文件汇总
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `rtl/dsp_cnn_top.sv` | NEW | 系统顶层集成 |
+
+---
+
 ## 2026-04-10 Phase 4：CSR / 中断控制器
 
 ### 执行摘要
