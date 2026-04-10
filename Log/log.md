@@ -2,6 +2,73 @@
 
 ---
 
+## 2026-04-10 Phase 6：验证深化与仿真自动化
+
+### 执行摘要
+
+补齐验证基础设施：新增 3 个 block testbench、4 组 SVA assertion sets、QuestaSim 仿真脚本（.do + .bat）。
+
+### 6.1 新增 Testbench
+
+| 文件 | 测试数 | 覆盖模块 |
+|------|--------|----------|
+| `tb/tb_csr_controller.sv` | 8 | CSR/IRQ：reset defaults, RW, SC, W1C, busy-protect, first-error, IRQ, perf counters |
+| `tb/tb_cnn_pe.sv` | 6 | CNN PE：weight load, TDL shift, MAC, acc clear, kernel mask, bias |
+| `tb/tb_dsp_cnn_top.sv` | 4 | 系统 Top：CSR loopback, IDLE status, CIC streaming, error/IRQ |
+
+### 6.2 SVA Assertion Sets
+
+| 文件 | Assertion 数 | 覆盖模块 |
+|------|-------------|----------|
+| `rtl/sva/sva_filter_cicd.sv` | 5 | CIC：tready=1, sideband, disable, busy, cfg_err |
+| `rtl/sva/sva_filter_fir.sv` | 5 | FIR：tready state, sideband, error sticky, busy |
+| `rtl/sva/sva_csr_controller.sv` | 5 | CSR：SC self-clear, IRQ mask, err hold, sticky, reset |
+| `rtl/sva/sva_cnn_engine.sv` | 5 | CNN：error sticky, done state, busy, err state |
+
+### 6.3 QuestaSim 仿真脚本
+
+| 文件 | 说明 |
+|------|------|
+| `scripts/filelist_rtl.f` | RTL 依赖排序文件列表 |
+| `scripts/sim.do` | QuestaSim .do 脚本（支持 TB_TOP 变量选择） |
+| `scripts/sim.bat` | Windows batch 脚本（cic/fir/csr/pe/top/all + gui 模式） |
+
+**使用方法：**
+```
+cd scripts
+sim.bat cic          # 单跑 CIC
+sim.bat all          # 全回归
+sim.bat fir gui      # FIR GUI 模式
+```
+
+### 修改文件汇总
+
+| 文件 | 操作 |
+|------|------|
+| `tb/tb_csr_controller.sv` | NEW |
+| `tb/tb_cnn_pe.sv` | NEW |
+| `tb/tb_dsp_cnn_top.sv` | NEW |
+| `rtl/sva/sva_filter_cicd.sv` | NEW |
+| `rtl/sva/sva_filter_fir.sv` | NEW |
+| `rtl/sva/sva_csr_controller.sv` | NEW |
+| `rtl/sva/sva_cnn_engine.sv` | NEW |
+| `scripts/filelist_rtl.f` | NEW |
+| `scripts/sim.do` | NEW |
+| `scripts/sim.bat` | NEW |
+
+### 验证覆盖统计
+
+| 模块 | Directed Tests | SVA | 状态 |
+|------|---------------|-----|------|
+| CIC | 8 | 5 | ✅ Block Signoff Ready |
+| FIR | 7 | 5 | ✅ Block Signoff Ready |
+| CSR | 8 | 5 | ✅ Block Signoff Ready |
+| CNN PE | 6 | 5 | ✅ Unit Level |
+| Top | 4 | - | 🟡 Smoke Level |
+| **Total** | **33** | **20** | - |
+
+---
+
 ## 2026-04-10 Phase 5：系统顶层集成
 
 ### 执行摘要
