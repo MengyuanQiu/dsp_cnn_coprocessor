@@ -2,6 +2,49 @@
 
 ---
 
+## 2026-04-10 Phase 1：CIC 模块对齐 Spec
+
+### 执行摘要
+
+将 CIC 抽取滤波器 RTL (`filter_cicd.sv`) 从基础实现升级为完全符合 `FILTER_CIC_SPEC v2.0` 的版本，并编写了配套的 block-level testbench。
+
+### 1.1 CIC 模块重构 (`rtl/filter_cicd.sv`)
+
+**新增端口：**
+
+| 端口 | 方向 | 说明 | Spec 章节 |
+|------|------|------|-----------|
+| `cic_en_i` | in | 模块使能控制 | §10.1 |
+| `s_axis_tlast` | in | 输入帧尾标记 | §9.3 |
+| `s_axis_tuser` | in | 输入帧头标记 | §9.2 |
+| `m_axis_tlast` | out | 输出帧尾标记 | §9.4 |
+| `m_axis_tuser` | out | 输出帧头标记 | §9.4 |
+| `cic_busy_o` | out | 处理忙状态 | §10.2 |
+| `cic_cfg_err_o` | out | 参数非法状态 | §10.3 |
+
+**新增功能：**
+
+- **使能控制 (`cic_en_i`)**：`cic_en_i=0` 时不接收输入、不更新状态
+- **帧边界追踪**：通过 `r_frame_active`、`r_frame_first_out`、`r_input_last_seen` 状态机追踪帧生命周期
+- **输出帧标记映射**：第一个有效输出 tuser=1，最后一个有效输出 tlast=1
+- **Sideband pipeline 对齐**：SOF/EOF 标记通过 N+1 级移位管线与数据对齐
+- **非 valid 周期 sideband 清零**
+- **参数合法性检查**：检查 R>=2, N>=2, M>=1, PHASE<R
+- **输入端口 signed 声明**
+
+### 1.2 CIC Testbench (`tb/tb_filter_cicd.sv`)
+
+8 个测试用例：Impulse、DC、Alternating Max/Min、Random、Frame Boundary、Enable Gating、tready Always High、Sideband Zero When Invalid。包含固定宽度补码 golden model。
+
+### 修改文件汇总
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `rtl/filter_cicd.sv` | REWRITE | 完全对齐 CIC Spec v2.0 |
+| `tb/tb_filter_cicd.sv` | NEW | CIC block testbench + golden model |
+
+---
+
 ## 2026-04-10 Phase 0：基础设施补齐
 
 ### 执行摘要
