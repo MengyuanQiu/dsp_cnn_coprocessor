@@ -2,6 +2,58 @@
 
 ---
 
+## 2026-04-10 Phase 3：CNN 核心推理引擎（v1 结构骨架）
+
+### 执行摘要
+
+实现了 1D-CNN 推理引擎的 v1 结构骨架，包含 PE 单元、后处理流水线和顶层引擎模块。3 个新 RTL 模块全部从零实现，对齐 `CORE_CNN_SPEC v2.0`。
+
+### 3.1 CNN PE 单元 (`rtl/cnn_pe.sv`) [NEW]
+
+v1 Processing Element 实现：
+
+| 子模块 | 功能 | Spec 章节 |
+|--------|------|-----------|
+| TDL | 抽头延迟线 (GP_PE_MAC_NUM 级) | §9.2.3 |
+| 乘法器阵列 | GP_PE_MAC_NUM 路并行有符号乘法 | §9.2.1 |
+| 本地加法树 | 归约为单个 partial sum | §9.2.1 |
+| 双权重寄存器 | w_active / w_shadow 两级流水 | §8.3 |
+| 累加器 | 支持 clear + fold 累加 + bias 注入 | §9.3 |
+| Kernel size 掩码 | 运行时动态配置有效 tap 数 | §9.2.2 |
+
+### 3.2 后处理单元 (`rtl/cnn_post_processor.sv`) [NEW]
+
+3 级流水线：
+
+| 级 | 功能 | Spec 章节 |
+|----|------|-----------|
+| Stage 1 | ReLU (符号位判断) | §11.1 |
+| Stage 2 | Max/Avg Pooling (滑窗比较/累加) | §11.2 |
+| Stage 3 | Re-Quantization (Round-Half-Up + shift + saturate) | §11.3 |
+
+### 3.3 CNN 推理引擎顶层 (`rtl/cnn_inference_engine.sv`) [NEW]
+
+| 组件 | 说明 |
+|------|------|
+| Global FSM | 11 状态：IDLE→LOAD_INPUT→CHECK_CFG→LOAD_WEIGHT→COMPUTE→POST_PROCESS→WRITE_BACK→NEXT_LAYER→RESULT_OUT→DONE→ERROR |
+| PE Cluster | GP_PE_CLUSTER_NUM 个 PE 实例 |
+| Ping-Pong CBUF | CBUF0/CBUF1 + 逐层翻转 |
+| Input Staging | 帧缓冲 + 写指针 |
+| Layer Config | 支持配置 layer_type, in_ch, out_ch, seq_len, kernel_size, stride, padding, act_type, pool_type, quant_shift |
+| Result Output | AXI-Stream 输出 + SOF/EOF 标记 |
+
+> **注意**：v1 结构骨架中，数据分发网络和权重装载路径使用占位信号连接。完整的数据流调度将在后续迭代中细化。
+
+### 修改文件汇总
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `rtl/cnn_pe.sv` | NEW | PE 单元 |
+| `rtl/cnn_post_processor.sv` | NEW | 后处理流水线 |
+| `rtl/cnn_inference_engine.sv` | NEW | CNN 顶层引擎 |
+
+---
+
 ## 2026-04-10 Phase 2：FIR 模块对齐 Spec
 
 ### 执行摘要
