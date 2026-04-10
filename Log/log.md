@@ -2,6 +2,37 @@
 
 ---
 
+## 2026-04-10 Phase 4：CSR / 中断控制器
+
+### 执行摘要
+
+实现了 AXI-Lite CSR 与中断控制器 (`csr_controller.sv`)，对齐 `CSR_INTERRUPT_SPEC v1.0` 全部寄存器映射。
+
+### 4.1 `rtl/csr_controller.sv` [NEW]
+
+| 功能 | 实现 | Spec 章节 |
+|------|------|-----------|
+| AXI-Lite Slave | 12-bit addr, 32-bit data, AW/W/B + AR/R channels | §3.1 |
+| SYS_CTRL | START/STOP/SOFT_RST (SC), CLR_DONE/CLR_ERR (W1C) | §5.1 |
+| SYS_STATUS | IDLE, BUSY, DONE/ERR (sticky), module active flags | §5.2 |
+| SYS_ERR_CODE | First-error capture + sub-info | §5.3 |
+| ERR_SUMMARY | Bitmap of all errors | §5.4 |
+| IRQ controller | mask/raw/status (W1C), combined irq_o output | §6 |
+| CIC CFG0/CFG1 | DECIM_R, ORDER_N, DIFF_M, PHASE, CIC_EN | §8 |
+| FIR CFG0 | TAP_N, SHIFT, FIR_EN | §9 |
+| CNN GLOBAL CFG | NUM_LAYERS, CNN_EN | §10 |
+| Frame Config | FRAME_LEN | §7 |
+| Perf Counters | CYCLE_CNT, FRAME_CNT, PERF_CTRL | §11 |
+| Busy-write protection | Config regs locked during BUSY | §2.2 |
+
+### 修改文件汇总
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `rtl/csr_controller.sv` | NEW | AXI-Lite CSR + 中断控制器 |
+
+---
+
 ## 2026-04-10 Phase 3：CNN 核心推理引擎（v1 结构骨架）
 
 ### 执行摘要
