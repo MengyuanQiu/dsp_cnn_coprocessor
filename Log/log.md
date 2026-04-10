@@ -2,6 +2,30 @@
 
 ---
 
+## 2026-04-10 Phase 6 补充：CNN 数据通路深化
+
+### 执行摘要
+
+将 `cnn_inference_engine.sv` 从 v1 结构骨架升级到 v2 完整数据通路，替换所有占位信号。
+
+### 新增/深化内容
+
+| 组件 | v1 状态 | v2 实现 |
+|------|---------|---------|
+| Weight Buffer | ❌ 占位 | ✅ `r_wbuf[]` + 流式加载 + `r_wbuf_loaded` |
+| Bias Buffer | ❌ 占位 | ✅ `r_bias_buf[]` + 按输出通道索引 |
+| CBUF 读地址生成 | ❌ 占位 | ✅ `seq_pos * stride + kernel_cnt` 滑窗计算 |
+| 权重读地址 | ❌ 占位 | ✅ `out_ch * in_ch * ks + in_ch * ks + k` |
+| 计算调度器 | ❌ 占位 | ✅ 4 级嵌套循环：kernel→seq→in_ch→out_ch |
+| PE 数据分发 | ❌ `act_in='0` | ✅ CBUF 读数据 → PE activation input |
+| PE 权重加载 | ❌ `wt_data='0` | ✅ WBUF → PE weight vector |
+| Bias 注入 | ❌ 未连接 | ✅ `r_bias_buf[out_ch_idx]` → post-processor |
+| 输入→CBUF0 | ❌ 未连接 | ✅ `input_buf → r_cbuf0` 在第一层 CHECK_CFG 时拷贝 |
+| 后处理写回 | ❌ 未连接 | ✅ `w_pp_data_out → CBUF_WR[cbuf_wr_ptr]` |
+| PE 独立控制 | ❌ 共享信号 | ✅ 每 PE 独立 en/clr_acc/wt_load/bias_en |
+
+---
+
 ## 2026-04-10 Phase 6：验证深化与仿真自动化
 
 ### 执行摘要
