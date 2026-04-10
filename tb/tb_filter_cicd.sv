@@ -347,7 +347,7 @@ module tb_filter_cicd;
         golden_reset();
 
         for (int i = 0; i < P_FRAME_LEN; i++) begin
-            samples[i] = $random;
+            samples[i] = $urandom;
         end
 
         for (int i = 0; i < P_FRAME_LEN; i++) golden_process_sample(samples[i]);

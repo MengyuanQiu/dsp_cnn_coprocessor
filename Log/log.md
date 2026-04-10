@@ -2,6 +2,80 @@
 
 ---
 
+## 2026-04-10 Phase 2：FIR 模块对齐 Spec
+
+### 执行摘要
+
+将 FIR 补偿滤波器 RTL (`filter_fir.sv`) 从基础实现完全重写为符合 `FILTER_FIR_SPEC v2.0` 的版本。同时修复了 CIC testbench 的 lint 问题。
+
+### 2.0 CIC Testbench 修复
+
+- **问题**：`$random` 是不推荐的系统函数
+- **修复**：`$random` → `$urandom`
+- **文件**：`tb/tb_filter_cicd.sv`
+
+### 2.1 FIR 模块重构 (`rtl/filter_fir.sv`)
+
+**架构变更：**
+
+| 旧实现 | 新实现 |
+|--------|--------|
+| 使用 `axi_stream_if` 接口 | 展平端口（与 Spec §6.1 一致） |
+| 系数从 ROM 加载（硬编码） | 系数流式装载协议（§8） |
+| 简单 flush 计数器 | 完整 7 状态 FSM（§13） |
+| 无使能/忙/错误信号 | 全部控制/状态信号（§14） |
+| 实例化 conv + multiplier 子模块 | 内联乘法器阵列（支持不同系数/输入位宽） |
+
+**状态机（Spec §13）：**
+
+```
+IDLE → COEF_LOAD → HEAD_FLUSH → RUN → TAIL_FLUSH → DONE → (loop)
+  ↓         ↓                                               
+ERROR ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+```
+
+**新增端口（对比旧版）：**
+
+| 端口 | 方向 | 说明 |
+|------|------|------|
+| `fir_en_i` | in | 模块使能 |
+| `s_axis_tlast/tuser` | in | 帧边界输入 |
+| `m_axis_tlast/tuser` | out | 帧边界输出 |
+| `coef_load_start_i` | in | 开始系数装载 |
+| `coef_load_valid_i` | in | 系数数据有效 |
+| `coef_data_i` | in | 系数数据 |
+| `coef_load_done_i` | in | 装载完成 |
+| `fir_busy_o` | out | 忙状态 |
+| `coef_ready_o` | out | 系数就绪 |
+| `fir_cfg_err_o` | out | 参数错误 |
+| `coef_load_err_o` | out | 系数装载错误 |
+
+### 2.2 FIR Testbench (`tb/tb_filter_fir.sv`)
+
+7 个测试用例：
+
+| # | 测试名 | 覆盖目标 |
+|---|--------|----------|
+| 1 | Coef Loading | 系数装载协议 + 状态机 |
+| 2 | Impulse Response | 功能正确性 |
+| 3 | DC Input | 稳态响应 |
+| 4 | Frame Boundary | SOF/EOF sideband |
+| 5 | tready Behavior | 状态门控 |
+| 6 | Sideband Zero | 非 valid 语义 |
+| 7 | Random Data | 通用正确性 |
+
+Golden model 实现 Round-Half-Up + arithmetic shift + saturation。
+
+### 修改文件汇总
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `rtl/filter_fir.sv` | REWRITE | 完全对齐 FIR Spec v2.0 |
+| `tb/tb_filter_cicd.sv` | FIX | $random → $urandom |
+| `tb/tb_filter_fir.sv` | NEW | FIR block testbench + golden model |
+
+---
+
 ## 2026-04-10 Phase 1：CIC 模块对齐 Spec
 
 ### 执行摘要
